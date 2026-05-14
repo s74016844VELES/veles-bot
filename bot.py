@@ -20,7 +20,15 @@ if not ANTHROPIC_API_KEY:
     logger.error("ANTHROPIC_API_KEY is not set!")
     raise SystemExit("ANTHROPIC_API_KEY is not set!")
 
+ALLOWED_USER_ID = int(os.environ.get("ALLOWED_USER_ID", "0"))
+
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+
+async def check_access(update: Update) -> bool:
+    if ALLOWED_USER_ID and update.effective_user.id != ALLOWED_USER_ID:
+        await update.message.reply_text("⛔ Доступ запрещён.")
+        return False
+    return True
 
 TEMPLATES_DIR = "templates"
 os.makedirs(TEMPLATES_DIR, exist_ok=True)
@@ -104,6 +112,7 @@ def fill_document(template_path: str, data: dict, output_path: str) -> bool:
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await check_access(update): return
     await update.message.reply_text(
         "👋 Привет! Я заполняю доп. соглашения ООО ТК «Велес».\n\n"
         "Напишите данные, например:\n"
@@ -114,6 +123,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def list_templates(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await check_access(update): return
     files = [f for f in os.listdir(TEMPLATES_DIR) if f.endswith(".docx")]
     if files:
         names = "\n".join(
@@ -126,6 +136,7 @@ async def list_templates(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await check_access(update): return
     doc = update.message.document
     if not doc.file_name.endswith(".docx"):
         await update.message.reply_text("Пожалуйста, загрузите файл .docx")
@@ -137,6 +148,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await check_access(update): return
     user_text = update.message.text
     await update.message.reply_text("⏳ Обрабатываю...")
 
